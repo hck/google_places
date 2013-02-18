@@ -2,6 +2,7 @@ require "spec_helper"
 
 describe GooglePlaces::Query do
   let(:query){ {location: '111', sensor: true, radius: 1000} }
+  let(:lat_lng){ {lat: 50.426585499999995, lng: 30.504084000000002} }
 
   describe "#initialize" do
     it "should initialize new object if query param specified" do
@@ -23,33 +24,51 @@ describe GooglePlaces::Query do
   end
 
   describe "#response" do
-    let(:config) do
-      GooglePlaces.configure(api_key: 'test_api_key')
-      described_class.new(query)
-    end
-
     it "should do request to a proper uri" do
+      GooglePlaces.configure(api_key: 'test_api_key')
+      query_obj = described_class.new(query)
+
       uri = URI(GooglePlaces::SEARCH_URL)
       uri.query = URI.encode_www_form(query.merge(key: 'test_api_key'))
 
       Net::HTTP.stub(:get_response).with(uri).and_return(true)
-      config.response
+      query_obj.response
+    end
+
+    it "should receive valid response" do
+      GooglePlaces.configure(api_key: 'AIzaSyDaQfc6T6viTezCm6WKQDWvERB0fvzzmVc')
+      query_obj = described_class.new query.merge(location: lat_lng)
+      query_obj.response.should be_instance_of(Hash)
     end
   end
 
   describe "private #build_query" do
-    let(:config) do
+    let(:query_obj) do
       GooglePlaces.configure(api_key: 'test_api_key')
       described_class.new(query.merge(types: [:type1, :type2], rankby: :distance))
     end
 
+    it "should do nothing with location if it specifiad as string" do
+      query_obj.send(:build_query)[:location].should == query[:location]
+    end
+
+    it "should join latitude & longitude in location hash with comma" do
+      obj = described_class.new query.merge(location: lat_lng)
+      obj.send(:build_query)[:location].should == lat_lng.values_at(:lat, :lng).join(',')
+    end
+
+    it "should join latitude & longitude in location array with comma" do
+      obj = described_class.new query.merge(location: lat_lng.values)
+      obj.send(:build_query)[:location].should == lat_lng.values.join(',')
+    end
+
     it "should join types by pipes if types passed as an array" do
-      res = config.send(:build_query)
+      res = query_obj.send(:build_query)
       res[:types].should == 'type1|type2'
     end
 
     it "should delete radius if rankby query param set to 'distance'" do
-      res = config.send(:build_query)
+      res = query_obj.send(:build_query)
       res.key?(:radius).should be_false
     end
   end
