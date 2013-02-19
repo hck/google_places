@@ -1,15 +1,15 @@
 require 'google_places/configuration'
 require 'google_places/query'
+require 'google_places/place'
+require 'google_places/result'
 require 'google_places/version'
 
 module GooglePlaces
   extend self
 
-  SEARCH_URL = 'https://maps.googleapis.com/maps/api/place/search/json'
+  attr_reader :configuration, :last_result
 
-  attr_reader :configuration, :last_response
-
-  private :last_response
+  private :last_result
 
   def configure(options)
     @configuration = Configuration.instance
@@ -17,19 +17,15 @@ module GooglePlaces
   end
 
   def search(query, options={})
-    @last_response = Query.new(query, options).response
+    @last_result = Query.new(query, options).search
+  end
+
+  def details(query)
+    @last_result = Query.new(query, options).details
   end
 
   private
-  def get_results(response)
-    require 'ostruct'
-
-    response['results'].each_with_object([]) do |rec,acc|
-      acc << OpenStruct.new(rec)
-    end
-  end
-
   def next_page_token
-    last_response && last_response['next_page_token']
+    last_result && last_result.next_page_token
   end
 end

@@ -23,23 +23,27 @@ describe GooglePlaces::Query do
     end
   end
 
-  describe "#response" do
+  describe "#search" do
     it "should do request to a proper uri" do
       GooglePlaces.configure(api_key: 'test_api_key')
       query_obj = described_class.new(query)
 
-      uri = URI(GooglePlaces::SEARCH_URL)
+      uri = URI(described_class::SEARCH_URL)
       uri.query = URI.encode_www_form(query.merge(key: 'test_api_key'))
 
       Net::HTTP.stub(:get_response).with(uri).and_return(true)
-      query_obj.response
+      query_obj.search
     end
 
     it "should receive valid response" do
-      GooglePlaces.configure(api_key: 'AIzaSyDaQfc6T6viTezCm6WKQDWvERB0fvzzmVc')
+      GooglePlaces.configure(api_key: @api_key)
       query_obj = described_class.new query.merge(location: lat_lng)
-      query_obj.response.should be_instance_of(Hash)
+      query_obj.search.should be_instance_of(GooglePlaces::Result)
     end
+  end
+
+  describe "#details" do
+
   end
 
   describe "private #build_query" do

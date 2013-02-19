@@ -5,6 +5,9 @@ module GooglePlaces
     VALID_QUERY_PARAMS = [:location, :radius, :sensor, :keyword, :language, :name, :rankby, :types, :pagetoken]
     REQUIRED_QUERY_PARAMS = [:location, :radius, :sensor]
 
+    SEARCH_URL = 'https://maps.googleapis.com/maps/api/place/search/json'
+    DETAILS_URL = 'https://maps.googleapis.com/maps/api/place/details/json'
+
     attr_reader :query, :options
 
     def initialize(query, options={})
@@ -15,10 +18,17 @@ module GooglePlaces
       end
     end
 
-    def response
-      require 'json'
+    def search
+      result SEARCH_URL
+    end
 
-      uri = URI(GooglePlaces::SEARCH_URL)
+    def details
+      result DETAILS_URL
+    end
+
+    private
+    def result(url=SEARCH_URL)
+      uri = URI(url)
       uri.query = URI.encode_www_form(build_query)
 
       http = Net::HTTP.new(uri.host, uri.port)
@@ -28,10 +38,9 @@ module GooglePlaces
         agent.get(uri.path + '?' + uri.query)
       end
 
-      JSON.parse(response.body) if response.is_a?(Net::HTTPSuccess)
+      GooglePlaces::Result.new(response.body) if response.is_a?(Net::HTTPSuccess)
     end
 
-    private
     def build_query
       query.clone.tap do |q|
         q[:key] = GooglePlaces.configuration.api_key
