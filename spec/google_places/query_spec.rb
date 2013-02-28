@@ -38,12 +38,36 @@ describe GooglePlaces::Query do
     it "should receive valid response" do
       GooglePlaces.configure(api_key: @api_key)
       query_obj = described_class.new query.merge(location: lat_lng)
-      query_obj.search.should be_instance_of(GooglePlaces::Result)
+      result = query_obj.search
+      result.should be_instance_of(GooglePlaces::Result)
+      result.result.should be_nil
+      result.results.should_not be_empty
+      result.results.first.should be_instance_of(GooglePlaces::Place)
     end
   end
 
   describe "#details" do
+    let(:query){ {reference: @place_reference, sensor: true} }
 
+    it "should do request to a proper uri" do
+      GooglePlaces.configure(api_key: 'test_api_key')
+      query_obj = described_class.new(query, type: :details)
+
+      uri = URI(described_class::DETAILS_URL)
+      uri.query = URI.encode_www_form(query.merge(key: 'test_api_key'))
+
+      Net::HTTP.stub(:get_response).with(uri).and_return(true)
+      query_obj.details
+    end
+
+    it "should receive valid response" do
+      GooglePlaces.configure(api_key: @api_key)
+      query_obj = described_class.new(query, type: :details)
+      result = query_obj.details
+      result.should be_instance_of(GooglePlaces::Result)
+      result.results.should be_empty
+      result.result.should be_instance_of(GooglePlaces::Place)
+    end
   end
 
   describe "private #build_query" do

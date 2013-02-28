@@ -14,5 +14,6 @@ RSpec.configure do |config|
 
   config.before(:all) do
     @api_key = options['api_key']
+    @place_reference = options['place_reference']
   end
 end

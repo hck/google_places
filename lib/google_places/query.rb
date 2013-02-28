@@ -2,7 +2,10 @@ require 'net/http'
 
 module GooglePlaces
   class Query
-    VALID_QUERY_PARAMS = [:location, :radius, :sensor, :keyword, :language, :name, :rankby, :types, :pagetoken]
+    VALID_QUERY_PARAMS = {
+      search: [:location, :radius, :sensor, :keyword, :language, :name, :rankby, :types, :pagetoken],
+      details: [:reference, :sensor]
+    }
     REQUIRED_QUERY_PARAMS = [:location, :radius, :sensor]
 
     SEARCH_URL = 'https://maps.googleapis.com/maps/api/place/search/json'
@@ -11,11 +14,17 @@ module GooglePlaces
     attr_reader :query, :options
 
     def initialize(query, options={})
-      @query, @options = query.select{|k,| VALID_QUERY_PARAMS.include?(k)}, options
+      type = options[:type] || :search
 
-      if (query.keys & REQUIRED_QUERY_PARAMS).sort != REQUIRED_QUERY_PARAMS.sort && !query.key?(:pagetoken)
-        raise InvalidRequiredParams
+      if type == :details
+        raise InvalidRequiredParams unless query.key?(:reference)
+      else
+        if (query.keys & REQUIRED_QUERY_PARAMS).sort != REQUIRED_QUERY_PARAMS.sort && !query.key?(:pagetoken)
+          raise InvalidRequiredParams
+        end
       end
+
+      @query, @options = query.select{|k,| VALID_QUERY_PARAMS[type].include?(k)}, options
     end
 
     def search
@@ -53,7 +62,7 @@ module GooglePlaces
                          q[:location].values_at(:lat, :lng).join(',')
                        else
                          q[:location]
-                       end
+                       end if q.key?(:location)
 
         # join types by pipes (|)
         q[:types] = q[:types].join('|') if q.key?(:types) && q[:types].is_a?(Array)

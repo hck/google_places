@@ -5,6 +5,8 @@ module GooglePlaces
     def initialize(response)
       require 'json'
 
+      @results = []
+
       JSON.parse(response).each do |k,v|
         value = case k
                 when 'result'
